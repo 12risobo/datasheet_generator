@@ -7,6 +7,12 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch, mm
 from PIL import Image as PILImage
 from reportlab.lib import colors
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+# Register Calibri fonts
+pdfmetrics.registerFont(TTFont('Calibri', 'calibri.ttf'))
+pdfmetrics.registerFont(TTFont('Calibri-Bold', 'calibrib.ttf'))
 
 def resize_image(image_path, max_width, max_height):
     with PILImage.open(image_path) as img:
@@ -68,21 +74,25 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
     story.append(Paragraph("Technical Specifications", styles['Heading2']))
     story.append(Spacer(1, 10))
 
-    # Updated table style with header row styling
+    # Updated table style with specific fonts and colors
     table_style = [
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        # Regular cell styling
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('FONTNAME', (0, 1), (-1, -1), 'Calibri'),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        
         # Header row styling
         ('SPAN', (0, 0), (1, 0)),  # Span the header across both columns
-        ('BACKGROUND', (0, 0), (1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (1, 0), colors.whitesmoke),
-        ('FONTNAME', (0, 0), (1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (1, 0), 12),
-        ('ALIGN', (0, 0), (1, 0), 'LEFT'),
+        ('BACKGROUND', (0, 0), (1, 0), colors.HexColor('#104861')),
+        ('TEXTCOLOR', (0, 0), (1, 0), colors.white),
+        ('FONTNAME', (0, 0), (1, 0), 'Calibri'),
+        ('FONTSIZE', (0, 0), (1, 0), 10),
+        ('FONTWEIGHT', (0, 0), (1, 0), 'BOLD'),
+        ('ALIGN', (0, 0), (1, 0), 'CENTER'),
+        ('VALIGN', (0, 0), (1, 0), 'MIDDLE'),
     ]
 
     for section_title, section_data in sections.items():
