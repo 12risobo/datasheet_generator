@@ -14,9 +14,9 @@ def resize_image(image_path, max_width, max_height):
         return img.size
 
 def generate_datasheet(product_id, specs_data, items_data, image_path, output_dir):
-    # Set up PDF
+    # Set up PDF - switch to landscape by swapping width and height
     doc = SimpleDocTemplate(f"{output_dir}/{product_id}_datasheet.pdf", 
-                          pagesize=A4,
+                          pagesize=(A4[1], A4[0]),  # Swap dimensions for landscape
                           leftMargin=25*mm,
                           rightMargin=25*mm,
                           topMargin=25*mm,
@@ -45,7 +45,7 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
     # Define section headers we want to identify
     section_headers = [
         'Specifications cable (A)',
-        'Specifications Connector (B,C)',
+        'Specifications Connector (B, C)',
         'Specifications fiber',
         'Specifications optical performance',
         'Standard compliances'
@@ -68,36 +68,31 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
     story.append(Paragraph("Technical Specifications", styles['Heading2']))
     story.append(Spacer(1, 10))
 
+    # Updated table style with header row styling
     table_style = [
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('TOPPADDING', (0, 1), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        # Header row styling
+        ('SPAN', (0, 0), (1, 0)),  # Span the header across both columns
+        ('BACKGROUND', (0, 0), (1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (1, 0), colors.whitesmoke),
+        ('FONTNAME', (0, 0), (1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (1, 0), 12),
+        ('ALIGN', (0, 0), (1, 0), 'LEFT'),
     ]
 
     for section_title, section_data in sections.items():
         if section_data:  # Only create table if there's data
-            # Add section header
-            section_style = ParagraphStyle(
-                'SectionHeader',
-                parent=styles['Heading3'],
-                fontSize=12,
-                spaceAfter=10,
-                spaceBefore=15
-            )
-            story.append(Paragraph(section_title, section_style))
+            # Create table data with header row
+            table_data = [[section_title, '']]  # Empty string for second column in header
+            table_data.extend(section_data)
             
             # Create and style table
-            section_table = Table(section_data, colWidths=[doc.width/2.0]*2)
+            section_table = Table(table_data, colWidths=[doc.width/2.0]*2)
             section_table.setStyle(table_style)
             story.append(section_table)
             story.append(Spacer(1, 10))
