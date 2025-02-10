@@ -1,6 +1,3 @@
-import csv
-import os
-from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Image, Table, Paragraph, PageBreak, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -9,10 +6,18 @@ from PIL import Image as PILImage
 from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+import csv
+import os
+from datetime import datetime
+
+# Update font registration with proper paths
+font_dir = os.path.join(os.path.dirname(__file__), 'fonts')
+calibri_regular = os.path.join(font_dir, 'calibri.ttf')
+calibri_bold = os.path.join(font_dir, 'calibrib.ttf')
 
 # Register Calibri fonts
-pdfmetrics.registerFont(TTFont('Calibri', 'calibri.ttf'))
-pdfmetrics.registerFont(TTFont('Calibri-Bold', 'calibrib.ttf'))
+pdfmetrics.registerFont(TTFont('Calibri', calibri_regular))
+pdfmetrics.registerFont(TTFont('Calibri-Bold', calibri_bold))
 
 def resize_image(image_path, max_width, max_height):
     with PILImage.open(image_path) as img:
@@ -22,11 +27,12 @@ def resize_image(image_path, max_width, max_height):
 def generate_datasheet(product_id, specs_data, items_data, image_path, output_dir):
     # Set up PDF - switch to landscape by swapping width and height
     doc = SimpleDocTemplate(f"{output_dir}/{product_id}_datasheet.pdf", 
-                          pagesize=(A4[1], A4[0]),  # Swap dimensions for landscape
+                          pagesize=(A4[1], A4[0]),  # Landscape
                           leftMargin=25*mm,
                           rightMargin=25*mm,
                           topMargin=25*mm,
                           bottomMargin=25*mm)
+    
     story = []
     styles = getSampleStyleSheet()
     
@@ -74,15 +80,19 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
     story.append(Paragraph("Technical Specifications", styles['Heading2']))
     story.append(Spacer(1, 10))
 
-    # Updated table style with specific fonts and colors
+    # Calculate table width (73% of available width)
+    table_width = doc.width * 0.73
+    col_width = table_width / 2.0  # Split into two equal columns
+
+    # Updated table style with specific fonts, colors, and reduced row heights
     table_style = [
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         # Regular cell styling
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('FONTNAME', (0, 1), (-1, -1), 'Calibri'),
         ('FONTSIZE', (0, 1), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),  # Reduced from 8
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),  # Reduced from 8
         
         # Header row styling
         ('SPAN', (0, 0), (1, 0)),  # Span the header across both columns
@@ -101,11 +111,14 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
             table_data = [[section_title, '']]  # Empty string for second column in header
             table_data.extend(section_data)
             
-            # Create and style table
-            section_table = Table(table_data, colWidths=[doc.width/2.0]*2)
+            # Create and style table with new dimensions
+            section_table = Table(table_data, 
+                                colWidths=[col_width]*2,
+                                spaceBefore=5,  # Reduced spacing before table
+                                spaceAfter=5)   # Reduced spacing after table
             section_table.setStyle(table_style)
             story.append(section_table)
-            story.append(Spacer(1, 10))
+            story.append(Spacer(1, 5))  # Reduced spacer between tables
 
     story.append(PageBreak())
 
@@ -118,7 +131,9 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
     
     if current_product:
         items_table = Table([header] + current_product,
-                          colWidths=[doc.width/3.0]*3)
+                          colWidths=[table_width/3.0]*3,
+                          spaceBefore=5,
+                          spaceAfter=5)
         items_table.setStyle(table_style)
         story.append(items_table)
 
