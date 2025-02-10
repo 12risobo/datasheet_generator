@@ -1,5 +1,5 @@
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Image, Table, Paragraph, PageBreak, Spacer
+from reportlab.platypus import SimpleDocTemplate, Image, Table, Paragraph, PageBreak, Spacer, KeepTogether
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch, mm
 from PIL import Image as PILImage
@@ -36,18 +36,9 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
     story = []
     styles = getSampleStyleSheet()
     
-    # Add title
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        spaceAfter=30
-    )
-    story.append(Paragraph(f"Product Datasheet: {product_id}", title_style))
-    
-    # Add technical drawing
+    # Add technical drawing with 1.75x size
     try:
-        img_width, img_height = resize_image(image_path, 6*inch, 3*inch)
+        img_width, img_height = resize_image(image_path, 10.5*inch, 5.25*inch)  # 6*1.75=10.5, 3*1.75=5.25
         tech_drawing = Image(image_path, width=img_width, height=img_height)
         story.append(tech_drawing)
         story.append(Spacer(1, 20))
@@ -114,11 +105,11 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
             # Create and style table with new dimensions
             section_table = Table(table_data, 
                                 colWidths=[col_width]*2,
-                                spaceBefore=5,  # Reduced spacing before table
-                                spaceAfter=5)   # Reduced spacing after table
+                                spaceBefore=5,
+                                spaceAfter=5)
             section_table.setStyle(table_style)
-            story.append(section_table)
-            story.append(Spacer(1, 5))  # Reduced spacer between tables
+            # Wrap table in KeepTogether
+            story.append(KeepTogether([section_table, Spacer(1, 5)]))
 
     story.append(PageBreak())
 
@@ -126,7 +117,7 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
     story.append(Paragraph("Product Information", styles['Heading2']))
     story.append(Spacer(1, 10))
     
-    header = items_data[0]  # Get header row
+    header = items_data[0]
     current_product = [row for row in items_data[1:] if row[0] == product_id]
     
     if current_product:
@@ -135,7 +126,8 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
                           spaceBefore=5,
                           spaceAfter=5)
         items_table.setStyle(table_style)
-        story.append(items_table)
+        # Wrap table in KeepTogether
+        story.append(KeepTogether([items_table]))
 
     # Add footer
     story.append(Spacer(1, 20))
