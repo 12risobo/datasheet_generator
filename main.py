@@ -42,12 +42,32 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
     except FileNotFoundError:
         print(f"Image {image_path} not found. Skipping image.")
 
-    # Add specs table with formatting
+    # Define section headers we want to identify
+    section_headers = [
+        'Specifications cable (A)',
+        'Specifications Connector (B,C)',
+        'Specifications fiber',
+        'Specifications optical performance',
+        'Standard compliances'
+    ]
+
+    # Group specs data by sections
+    current_section = None
+    sections = {}
+    
+    for row in specs_data:
+        if not any(row):  # Skip empty rows
+            continue
+        if row[0] in section_headers:
+            current_section = row[0]
+            sections[current_section] = []
+        elif current_section and len(row) == 2:  # Only add rows with 2 columns
+            sections[current_section].append(row)
+
+    # Add each section as a separate table
     story.append(Paragraph("Technical Specifications", styles['Heading2']))
     story.append(Spacer(1, 10))
-    
-    # Format specs table
-    filtered_specs = [row for row in specs_data if any(row)]  # Remove empty rows
+
     table_style = [
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
@@ -63,9 +83,25 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
         ('TOPPADDING', (0, 1), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
     ]
-    specs_table = Table(filtered_specs, colWidths=[doc.width/2.0]*2)
-    specs_table.setStyle(table_style)
-    story.append(specs_table)
+
+    for section_title, section_data in sections.items():
+        if section_data:  # Only create table if there's data
+            # Add section header
+            section_style = ParagraphStyle(
+                'SectionHeader',
+                parent=styles['Heading3'],
+                fontSize=12,
+                spaceAfter=10,
+                spaceBefore=15
+            )
+            story.append(Paragraph(section_title, section_style))
+            
+            # Create and style table
+            section_table = Table(section_data, colWidths=[doc.width/2.0]*2)
+            section_table.setStyle(table_style)
+            story.append(section_table)
+            story.append(Spacer(1, 10))
+
     story.append(PageBreak())
 
     # Add product information table
