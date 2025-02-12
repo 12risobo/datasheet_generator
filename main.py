@@ -111,23 +111,82 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
             # Wrap table in KeepTogether
             story.append(KeepTogether([section_table, Spacer(1, 5)]))
 
-    story.append(PageBreak())
-
+    # Create a list to hold the product information section
+    product_info_section = []
+    
     # Add product information table
-    story.append(Paragraph("Product Information", styles['Heading2']))
-    story.append(Spacer(1, 10))
+    product_info_section.append(Paragraph("Product Information", styles['Heading2']))
+    product_info_section.append(Spacer(1, 10))
     
+    # Get header and all non-empty rows (skip the second empty row)
     header = items_data[0]
-    current_product = [row for row in items_data[1:] if row[0] == product_id]
+    all_products = [row for row in items_data[2:] if any(row)]  # Get all non-empty rows
     
-    if current_product:
-        items_table = Table([header] + current_product,
-                          colWidths=[table_width/3.0]*3,
-                          spaceBefore=5,
-                          spaceAfter=5)
-        items_table.setStyle(table_style)
-        # Wrap table in KeepTogether
-        story.append(KeepTogether([items_table]))
+    # Calculate how many columns we want (e.g., 4 pairs of columns)
+    num_column_pairs = 4
+    total_columns = num_column_pairs * 2  # Each pair has Item and Length
+    
+    # Prepare data for the table
+    table_data = []
+    
+    # Add header rows for each column pair
+    header_row = []
+    for _ in range(num_column_pairs):
+        header_row.extend(header)
+    table_data.append(header_row)
+    
+    # Calculate how many rows we need
+    products_per_column = (len(all_products) + num_column_pairs - 1) // num_column_pairs
+    
+    # Fill in the product data
+    for row_idx in range(products_per_column):
+        row_data = []
+        for col_idx in range(num_column_pairs):
+            product_idx = row_idx + (col_idx * products_per_column)
+            if product_idx < len(all_products):
+                row_data.extend(all_products[product_idx])
+            else:
+                row_data.extend(['', ''])  # Empty cells for padding
+        table_data.append(row_data)
+    
+    # Calculate column widths (distribute evenly across the table width)
+    col_width = table_width / total_columns
+    
+    # Create and style table
+    items_table = Table(table_data,
+                       colWidths=[col_width] * total_columns,
+                       spaceBefore=5,
+                       spaceAfter=5)
+    
+    # Modify table style to handle multiple columns
+    table_style_items = [
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Calibri'),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        
+        # Header styling
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#104861')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Calibri'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('FONTWEIGHT', (0, 0), (-1, 0), 'BOLD'),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+    ]
+    
+    items_table.setStyle(table_style_items)
+    product_info_section.append(items_table)
+
+    # Try to keep all content together, but allow page break if it doesn't fit
+    try:
+        story.append(KeepTogether(product_info_section))
+    except:
+        # If it doesn't fit, add a page break before the product information
+        story.append(PageBreak())
+        story.extend(product_info_section)
 
     # Add footer
     story.append(Spacer(1, 20))
