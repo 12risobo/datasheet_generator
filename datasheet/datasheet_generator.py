@@ -12,13 +12,6 @@ class DatasheetGenerator:
     DEFAULT_IMAGE_SIZE = (10.5 * inch, 5.25 * inch)
     TABLE_WIDTH_RATIO = 0.73
     NUM_PRODUCT_COLUMNS = 4
-    SECTION_HEADERS = [
-        'Specifications cable (A)',
-        'Specifications Connector (B, C)',
-        'Specifications fiber',
-        'Specifications optical performance',
-        'Standard compliances'
-    ]
     
     def __init__(self, product_id, specs_data, items_data, image_path, output_dir):
         self.product_id = product_id
@@ -133,25 +126,29 @@ class DatasheetGenerator:
         current_section = None
         
         for row in self.specs_data:
-            if not any(row):
+            if len(row) < 1:
                 continue
-            if row[0] in self.SECTION_HEADERS:
-                current_section = row[0]
+                
+            # Improved header detection with case-insensitive check
+            header_candidate = row[0].upper()
+            if '[H1]' in header_candidate:
+                current_section = row[0].upper().split('[H1]')[0].strip()
                 sections[current_section] = []
-            elif current_section and len(row) == 2:
-                sections[current_section].append(row)
+            elif current_section and len(row) >= 2:
+                # Take first two columns only
+                sections[current_section].append(row[:2])
         
         return sections
 
     def _add_product_info_section(self):
         """Improved column splitting logic"""
-        products = [row for row in self.items_data[2:] if any(row)]
+        products = [row for row in self.items_data[1:] if any(row)]  # Skip only header row
         table_data = self._create_product_table_data(products)
         self.story.append(Paragraph("Product Information", self.styles['Heading2']))
         self.story.append(Spacer(1, 10))
 
         header = self.items_data[0]
-        all_products = [row for row in self.items_data[2:] if any(row)]
+        all_products = [row for row in self.items_data[1:] if any(row)]  # Skip only header row
         num_column_pairs = 4
         total_columns = num_column_pairs * 2  # Each pair has 2 columns
 

@@ -1,5 +1,4 @@
-Item,Length(m)
-,
+Article code,Length(m)
 RL9752,0.25M
 RL9700,0.50M
 RL9701,1.00M
@@ -22,4 +21,3 @@ RL9730,30.0M
 RL9735,35.0M
 RL9740,40.0M
 RL9745,45.0M
-RL9750,50.0M

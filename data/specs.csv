@@ -1,4 +1,4 @@
-Specifications cable (A),
+Specifications cable (A) [H1],
 Type,Patchcord - Duplex
 Outer diameter,1.8mm
 Tensile strength,90N (short time 150N)
@@ -9,7 +9,7 @@ Outer Jacket ,LSZH
 Cable colour,Erika Violet
 Cable printing,ACT Premium Multimode Fiber Optical Patch Cable 50/125 OM4 LSZH
 ,
-"Specifications Connector (B, C)",
+"Specifications Connector (B, C) [H1]",
 Connector,LC Duplex
 Polishing Connector,UPC
 Ferrule Connector,Ceramic Zirconia (ZrO2)
@@ -20,21 +20,18 @@ Boot,White/Yellow (TPE)
 Tube,White/Yellow (PVC)
 Cap,White(PE)
 ,
-Specifications fiber,
-,
+Specifications fiber [H1],
 Fiber type,Multimode
 Fiber class,OM4
 Diameter core / cladding,50/125
 Minimal bending radius fiber,
 ,
-Specifications optical performance,
-,
+Specifications optical performance [H1],
 Insertion Loss (IL) typical,0.1 dB
 Insertion Loss (IL) maximum,0.15 dB
 Return Loss (RL),? 45 dB
 ,
-Standard compliances,
-,
+Standard compliances [H1],
 ANSI/TIA-568-D,
 ISO 11801 OM4/IEC60793-2-10 type A1a,
 Telcordia GR-326 CORE,
