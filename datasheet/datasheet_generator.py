@@ -2,7 +2,9 @@ import os
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import (SimpleDocTemplate, Image, Table, Paragraph,
-                               PageBreak, Spacer, KeepTogether)
+                               PageBreak, Spacer, KeepTogether, NextPageTemplate)
+from reportlab.platypus.frames import Frame
+from reportlab.platypus.doctemplate import PageTemplate
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm, inch
 from reportlab.lib import colors
@@ -27,14 +29,41 @@ class DatasheetGenerator:
 
     def _init_doc(self):
         file_path = os.path.join(self.output_dir, f"{self.product_id}_datasheet.pdf")
+        # Define page templates with different margins
         doc = SimpleDocTemplate(
             file_path,
             pagesize=(A4[1], A4[0]),  # Landscape orientation
-            leftMargin=25 * mm,
-            rightMargin=25 * mm,
-            topMargin=25 * mm,
-            bottomMargin=25 * mm,
         )
+
+        # First page template with no top margin
+        first_page_frame = Frame(
+            25 * mm,  # left margin
+            25 * mm,  # bottom margin
+            doc.width,  # width
+            doc.height,  # full height for first page
+            leftPadding=0,
+            topPadding=0,
+            rightPadding=0,
+            bottomPadding=0
+        )
+
+        # Other pages template with normal margins
+        other_pages_frame = Frame(
+            25 * mm,  # left margin
+            25 * mm,  # bottom margin
+            doc.width,  # width
+            doc.height - 50 * mm,  # height (subtracting top and bottom margins)
+            leftPadding=0,
+            topPadding=0,
+            rightPadding=0,
+            bottomPadding=0
+        )
+
+        doc.addPageTemplates([
+            PageTemplate(id='FirstPage', frames=first_page_frame),
+            PageTemplate(id='OtherPages', frames=other_pages_frame)
+        ])
+
         return doc
 
     def register_fonts(self):
@@ -49,6 +78,8 @@ class DatasheetGenerator:
 
     def generate(self):
         self._build_story()
+        # Set first page template and switch for subsequent pages
+        self.story.insert(0, NextPageTemplate(['FirstPage', 'OtherPages']))
         self.doc.build(self.story)
 
     def _build_story(self):
@@ -58,23 +89,21 @@ class DatasheetGenerator:
         self._add_footer()
 
     def _add_technical_drawing(self):
-        # Add technical drawing with proper format handling
-        self.story.append(Spacer(1, 20))
         try:
             if self.image_path.lower().endswith('.svg'):
                 from svglib.svglib import svg2rlg
                 drawing = svg2rlg(self.image_path)
                 if drawing:
-                    drawing.width *= 1.75
-                    drawing.height *= 1.75
+                    drawing.width *= 1.5  # Slightly smaller to fit better
+                    drawing.height *= 1.5
                     self.story.append(drawing)
-                    self.story.append(Spacer(1, 20))
+                    self.story.append(Spacer(1, 5))  # Minimal space after image
             else:
                 # Calculate new image size
                 img_width, img_height = resize_image(self.image_path, 10.5 * inch, 5.25 * inch)
                 tech_drawing = Image(self.image_path, width=img_width, height=img_height)
                 self.story.append(tech_drawing)
-                self.story.append(Spacer(1, 20))
+                self.story.append(Spacer(1, 5))  # Minimal space after image
         except Exception as e:
             print(f"Error loading technical drawing: {e}")
 
