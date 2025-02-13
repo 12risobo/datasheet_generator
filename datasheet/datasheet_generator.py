@@ -9,6 +9,17 @@ from reportlab.lib import colors
 from utils.image_utils import resize_image
 
 class DatasheetGenerator:
+    DEFAULT_IMAGE_SIZE = (10.5 * inch, 5.25 * inch)
+    TABLE_WIDTH_RATIO = 0.73
+    NUM_PRODUCT_COLUMNS = 4
+    SECTION_HEADERS = [
+        'Specifications cable (A)',
+        'Specifications Connector (B, C)',
+        'Specifications fiber',
+        'Specifications optical performance',
+        'Standard compliances'
+    ]
+    
     def __init__(self, product_id, specs_data, items_data, image_path, output_dir):
         self.product_id = product_id
         self.specs_data = specs_data
@@ -18,8 +29,7 @@ class DatasheetGenerator:
         self.styles = getSampleStyleSheet()
         self.story = []
         self.doc = self._init_doc()
-        # Calculate table width (73% of available width)
-        self.table_width = self.doc.width * 0.73
+        self.table_width = self.doc.width * self.TABLE_WIDTH_RATIO
         self.register_fonts()
 
     def _init_doc(self):
@@ -76,24 +86,11 @@ class DatasheetGenerator:
             print(f"Error loading technical drawing: {e}")
 
     def _add_specifications_section(self):
-        # Group specifications data by sections
-        section_headers = [
-            'Specifications cable (A)',
-            'Specifications Connector (B, C)',
-            'Specifications fiber',
-            'Specifications optical performance',
-            'Standard compliances'
-        ]
-        current_section = None
-        sections = {}
-        for row in self.specs_data:
-            if not any(row):
-                continue
-            if row[0] in section_headers:
-                current_section = row[0]
-                sections[current_section] = []
-            elif current_section and len(row) == 2:
-                sections[current_section].append(row)
+        """Improved section grouping with helper methods"""
+        sections = self._group_specs_by_section()
+        if not sections:
+            print("Warning: No specification sections found!")
+            return
 
         self.story.append(Paragraph("Technical Specifications", self.styles['Heading2']))
         self.story.append(Spacer(1, 10))
@@ -118,8 +115,8 @@ class DatasheetGenerator:
         ]
 
         for section_title, section_data in sections.items():
-            if section_data:  # Only create table if there's data
-                table_data = [[section_title, '']]  # Header row (spans two columns)
+            if section_data:
+                table_data = [[section_title, '']]
                 table_data.extend(section_data)
                 section_table = Table(
                     table_data,
@@ -130,7 +127,26 @@ class DatasheetGenerator:
                 section_table.setStyle(table_style)
                 self.story.append(KeepTogether([section_table, Spacer(1, 5)]))
 
+    def _group_specs_by_section(self):
+        """Helper method to group specifications by section"""
+        sections = {}
+        current_section = None
+        
+        for row in self.specs_data:
+            if not any(row):
+                continue
+            if row[0] in self.SECTION_HEADERS:
+                current_section = row[0]
+                sections[current_section] = []
+            elif current_section and len(row) == 2:
+                sections[current_section].append(row)
+        
+        return sections
+
     def _add_product_info_section(self):
+        """Improved column splitting logic"""
+        products = [row for row in self.items_data[2:] if any(row)]
+        table_data = self._create_product_table_data(products)
         self.story.append(Paragraph("Product Information", self.styles['Heading2']))
         self.story.append(Spacer(1, 10))
 
@@ -190,6 +206,14 @@ class DatasheetGenerator:
         except Exception as e:
             self.story.append(PageBreak())
             self.story.extend(product_info_section)
+
+    def _create_product_table_data(self, products):
+        """Helper method for product table creation"""
+        products_per_column = (len(products) + self.NUM_PRODUCT_COLUMNS - 1) // self.NUM_PRODUCT_COLUMNS
+        return [
+            products[i*products_per_column:(i+1)*products_per_column] 
+            for i in range(self.NUM_PRODUCT_COLUMNS)
+        ]
 
     def _add_footer(self):
         footer_style = ParagraphStyle(
