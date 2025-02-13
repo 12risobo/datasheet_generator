@@ -36,14 +36,22 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
     story = []
     styles = getSampleStyleSheet()
     
-    # Add technical drawing with 1.75x size
+    # Add technical drawing with proper format handling
     try:
-        img_width, img_height = resize_image(image_path, 10.5*inch, 5.25*inch)  # 6*1.75=10.5, 3*1.75=5.25
-        tech_drawing = Image(image_path, width=img_width, height=img_height)
-        story.append(tech_drawing)
-        story.append(Spacer(1, 20))
-    except FileNotFoundError:
-        print(f"Image {image_path} not found. Skipping image.")
+        if image_path.lower().endswith('.svg'):
+            drawing = svg2rlg(image_path)
+            if drawing:
+                drawing.width *= 1.75
+                drawing.height *= 1.75
+                story.append(drawing)
+                story.append(Spacer(1, 20))
+        else:  # For PNG/JPG
+            img_width, img_height = resize_image(image_path, 10.5*inch, 5.25*inch)
+            tech_drawing = Image(image_path, width=img_width, height=img_height)
+            story.append(tech_drawing)
+            story.append(Spacer(1, 20))
+    except Exception as e:
+        print(f"Error loading technical drawing: {e}")
 
     # Define section headers we want to identify
     section_headers = [
@@ -202,6 +210,7 @@ def generate_datasheet(product_id, specs_data, items_data, image_path, output_di
     )
     story.append(footer)
 
+    # Build with normal canvas flow
     doc.build(story)
 
 def read_csv(file_path):
