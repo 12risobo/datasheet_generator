@@ -44,7 +44,7 @@ class DatasheetGenerator:
             doc.width,  # width
             doc.height,  # full height for first page
             leftPadding=0,
-            topPadding=0,
+            topPadding=-15*mm,  # Negative padding to move content up
             rightPadding=0,
             bottomPadding=0
         )

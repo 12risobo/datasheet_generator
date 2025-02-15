@@ -13,18 +13,15 @@ def main():
     output_dir = 'generated_datasheets'
     os.makedirs(output_dir, exist_ok=True)
 
-    # Use the product codes from productrange.csv and generate a datasheet per product
-    for product in items_data[2:]:
-        product_id = product[0]  # e.g., RL9752
-        if product_id:
-            generator = DatasheetGenerator(
-                product_id=product_id,
-                specs_data=specs_data,
-                items_data=items_data,
-                image_path=image_path,
-                output_dir=output_dir
-            )
-            generator.generate()
+    # Generate a single datasheet with all products
+    generator = DatasheetGenerator(
+        product_id="RL97xx",  # Generic product ID for the series
+        specs_data=specs_data,
+        items_data=items_data,
+        image_path=image_path,
+        output_dir=output_dir
+    )
+    generator.generate()
 
 if __name__ == "__main__":
     main()
