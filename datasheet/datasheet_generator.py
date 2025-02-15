@@ -9,6 +9,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm, inch
 from reportlab.lib import colors
 from utils.image_utils import resize_image
+from reportlab.pdfgen import canvas
+from PIL import Image as PILImage
 
 class DatasheetGenerator:
     DEFAULT_IMAGE_SIZE = (10.5 * inch, 5.25 * inch)
@@ -29,10 +31,10 @@ class DatasheetGenerator:
 
     def _init_doc(self):
         file_path = os.path.join(self.output_dir, f"{self.product_id}_datasheet.pdf")
-        # Define page templates with different margins
         doc = SimpleDocTemplate(
             file_path,
             pagesize=(A4[1], A4[0]),  # Landscape orientation
+            defaultStyle={'wordWrap': 'CJK'},  # Ensure text wrapping works correctly
         )
 
         # First page template with no top margin
@@ -64,6 +66,9 @@ class DatasheetGenerator:
             PageTemplate(id='OtherPages', frames=other_pages_frame)
         ])
 
+        # Use custom canvas
+        doc._canv = WatermarkCanvas
+
         return doc
 
     def register_fonts(self):
@@ -80,7 +85,10 @@ class DatasheetGenerator:
         self._build_story()
         # Set first page template and switch for subsequent pages
         self.story.insert(0, NextPageTemplate(['FirstPage', 'OtherPages']))
-        self.doc.build(self.story)
+        self.doc.build(
+            self.story,
+            canvasmaker=WatermarkCanvas
+        )
 
     def _build_story(self):
         self._add_technical_drawing()
@@ -254,3 +262,41 @@ class DatasheetGenerator:
         )
         self.story.append(Spacer(1, 20))
         self.story.append(footer)
+
+class WatermarkCanvas(canvas.Canvas):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
+        self.pages = []
+
+    def showPage(self):
+        self.pages.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        # Add drawn_by to each page
+        for page in self.pages:
+            self.__dict__.update(page)
+            self._drawDrawnBy()
+            super().showPage()
+        super().save()
+
+    def _drawDrawnBy(self):
+        try:
+            # Save current state
+            self.saveState()
+            # Add drawn_by.png to bottom right
+            img = PILImage.open(self.drawn_by_path)
+            img_width, img_height = img.size
+            # Scale image if needed (optional)
+            scale_factor = 0.5  # Increased size by ~65% (from 0.3 to 0.5)
+            img_width *= scale_factor
+            img_height *= scale_factor
+            # Position in bottom right with 25mm margin
+            x = self._pagesize[0] - img_width - 10*mm  # Reduced right margin to 10mm
+            y = 10*mm  # Reduced bottom margin to 10mm
+            self.drawImage(self.drawn_by_path, x, y, width=img_width, height=img_height)
+            # Restore state
+            self.restoreState()
+        except Exception as e:
+            print(f"Error adding drawn_by image: {e}")
