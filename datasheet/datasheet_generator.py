@@ -181,19 +181,26 @@ class DatasheetGenerator:
         """Improved column splitting logic"""
         products = [row for row in self.items_data[1:] if any(row)]  # Skip only header row
         table_data = self._create_product_table_data(products)
+        # Get header from first row, removing [H1] marker if present
+        header = self.items_data[0]
+        # Process both header columns
+        article_code_header = header[0]  # First column is Article code
+        length_header = header[1]  # Second column is Length(m)
+        if '[H1]' in length_header.upper():  # Check for marker case-insensitively
+            length_header = length_header.split('[H1]')[0].strip()  # Keep original case
+
         self.story.append(Paragraph("Product Information", self.styles['Heading2']))
         self.story.append(Spacer(1, 10))
 
-        header = self.items_data[0]
-        all_products = [row for row in self.items_data[1:] if any(row)]  # Skip only header row
+        all_products = [row for row in self.items_data[1:] if any(row)]
         num_column_pairs = 4
-        total_columns = num_column_pairs * 2  # Each pair has 2 columns
+        total_columns = num_column_pairs * 2
 
         table_data = []
         # Add header rows repeated for each column pair
         header_row = []
         for _ in range(num_column_pairs):
-            header_row.extend(header)
+            header_row.extend([article_code_header, length_header])  # Use both header columns
         table_data.append(header_row)
 
         products_per_column = (len(all_products) + num_column_pairs - 1) // num_column_pairs
