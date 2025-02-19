@@ -32,10 +32,10 @@ Insertion Loss (IL) maximum,0.15 dB
 Return Loss (RL),≥ 45 dB
 ,
 Standard compliances [H1],
-ANSI/TIA-568-D,
-ISO 11801 OM4/IEC60793-2-10 type A1a,
-Telcordia GR-326 CORE,
-Fire performance,
+ANSI/TIA-568-D [k1],
+ISO 11801 OM4/IEC60793-2-10 type A1a [k1],
+Telcordia GR-326 CORE [k1],
+Fire performance [k1],
 Flame retardancy,IEC 60332-1-2
 Smoke density LS,IEC 61034
 Absence of halogen ZH,IEC 60754-1
