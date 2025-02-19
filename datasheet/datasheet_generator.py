@@ -1,11 +1,10 @@
 import os
-from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import (SimpleDocTemplate, Image, Table, Paragraph,
                                PageBreak, Spacer, KeepTogether, NextPageTemplate)
 from reportlab.platypus.frames import Frame
 from reportlab.platypus.doctemplate import PageTemplate
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import mm, inch
 from reportlab.lib import colors
 from utils.image_utils import resize_image
@@ -100,7 +99,6 @@ class DatasheetGenerator:
         self._add_technical_drawing()
         self._add_specifications_section()
         self._add_product_info_section()
-        self._add_footer()
 
     def _add_technical_drawing(self):
         try:
@@ -274,17 +272,3 @@ class DatasheetGenerator:
             products[i*products_per_column:(i+1)*products_per_column] 
             for i in range(self.NUM_PRODUCT_COLUMNS)
         ]
-
-    def _add_footer(self):
-        footer_style = ParagraphStyle(
-            'Footer',
-            parent=self.styles['Italic'],
-            fontSize=8,
-            textColor=colors.grey
-        )
-        footer = Paragraph(
-            f"Revision: 1.0 | Date: {datetime.now().strftime('%Y-%m-%d')} | Author: Your Name",
-            footer_style
-        )
-        self.story.append(Spacer(1, 20))
-        self.story.append(footer)

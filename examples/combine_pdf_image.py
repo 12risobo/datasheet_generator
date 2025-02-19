@@ -68,5 +68,32 @@ def main():
     with open('output.pdf', 'wb') as output_file:
         output.write(output_file)
 
+def create_pdf(csv_data, output_pdf, image_path=None, watermark_text=None):
+    # Create a new PDF
+    c = canvas.Canvas(output_pdf, pagesize=letter)
+    width, height = letter
+
+    # Add watermark if specified
+    if watermark_text:
+        c.saveState()
+        c.setFillColorRGB(0.9, 0.9, 0.9)  # Light gray
+        c.setFont("Helvetica", 60)
+        c.translate(width/2, height/2)
+        c.rotate(45)
+        c.drawCentredString(0, 0, watermark_text)
+        c.restoreState()
+
+    # Set initial position
+    y = height - 50
+    
+    # Add content from CSV
+    add_content(c, csv_data, y, width)
+
+    # Add image if provided
+    if image_path:
+        add_image(c, image_path, width)
+
+    c.save()
+
 if __name__ == "__main__":
     main() 
