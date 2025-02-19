@@ -9,6 +9,7 @@ from reportlab.lib.units import mm, inch
 from reportlab.lib import colors
 from utils.image_utils import resize_image
 from utils.pdf_utils import add_watermark_to_pdf
+from PIL import Image
 
 class DatasheetGenerator:
     DEFAULT_IMAGE_SIZE = (10.5 * inch, 5.25 * inch)
@@ -29,10 +30,11 @@ class DatasheetGenerator:
 
     def _init_doc(self):
         file_path = os.path.join(self.output_dir, f"{self.product_id}_datasheet.pdf")
+
         doc = SimpleDocTemplate(
             file_path,
             pagesize=(A4[1], A4[0]),  # Landscape orientation
-            defaultStyle={'wordWrap': 'CJK'},  # Ensure text wrapping works correctly
+            defaultStyle={'wordWrap': 'CJK'},
         )
 
         # First page template with no top margin
@@ -42,29 +44,45 @@ class DatasheetGenerator:
             doc.width,  # width
             doc.height,  # full height for first page
             leftPadding=0,
-            topPadding=-15*mm,  # Negative padding to move content up
+            topPadding=-15*mm,
             rightPadding=0,
             bottomPadding=0
         )
 
         # Other pages template with normal margins
         other_pages_frame = Frame(
-            25 * mm,  # left margin
-            25 * mm,  # bottom margin
-            doc.width,  # width
-            doc.height - 50 * mm,  # height (subtracting top and bottom margins)
+            25 * mm,
+            25 * mm,
+            doc.width,
+            doc.height - 50 * mm,
             leftPadding=0,
             topPadding=0,
             rightPadding=0,
             bottomPadding=0
         )
 
-        doc.addPageTemplates([
-            PageTemplate(id='FirstPage', frames=first_page_frame),
-            PageTemplate(id='OtherPages', frames=other_pages_frame)
-        ])
+        # Create templates with common onPage function
+        doc.addPageTemplates(PageTemplate(id='FirstPage', frames=first_page_frame, onPage=self.add_drawn_by))
+        doc.addPageTemplates(PageTemplate(id='OtherPages', frames=other_pages_frame, onPage=self.add_drawn_by))
 
         return doc
+
+    def add_drawn_by(self, canvas, doc):
+        canvas.saveState()
+        # Add drawn_by image to bottom right of every page
+        drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
+        # Get original image dimensions
+        with Image.open(drawn_by_path) as img:
+            orig_width, orig_height = img.size
+        
+        # Scale factor to make the image an appropriate size
+        scale_factor = 0.4
+        img_width = orig_width * scale_factor
+        img_height = orig_height * scale_factor
+        x = doc.pagesize[0] - img_width - 11*mm  # 11mm from right
+        y = 11*mm  # 11mm from bottom
+        canvas.drawImage(drawn_by_path, x, y, width=img_width, height=img_height)
+        canvas.restoreState()
 
     def register_fonts(self):
         from reportlab.pdfbase import pdfmetrics
@@ -78,15 +96,15 @@ class DatasheetGenerator:
 
     def generate(self):
         self._build_story()
-        # Set first page template and switch for subsequent pages
-        self.story.insert(0, NextPageTemplate(['FirstPage', 'OtherPages']))
+        # Use the same template for all pages
+        self.story.insert(0, NextPageTemplate('FirstPage'))
         # Generate temporary PDF without watermark
         temp_pdf_path = os.path.join(self.output_dir, f"temp_{self.product_id}_datasheet.pdf")
         final_pdf_path = os.path.join(self.output_dir, f"{self.product_id}_datasheet.pdf")
         
         # Build the initial PDF
         self.doc.filename = temp_pdf_path
-        self.doc.build(self.story)
+        self.doc.build(self.story, onFirstPage=self.add_drawn_by, onLaterPages=self.add_drawn_by)
         
         # Add watermark
         watermark_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'Watermerk.pdf')
@@ -101,6 +119,7 @@ class DatasheetGenerator:
         self._add_product_info_section()
 
     def _add_technical_drawing(self):
+        # First add the technical drawing
         try:
             if self.image_path.lower().endswith('.svg'):
                 from svglib.svglib import svg2rlg

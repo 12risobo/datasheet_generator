@@ -8815,6 +8815,1068 @@ The datasheets will now be generated without the footer. Let me know if you'd li
 
 ---
 
+_**User**_
+
+I would like to add another image to the pdf, from assets import drawn_by.png and position it at the bottom right corner of the first page. Mage sure the bottom right corner of the png is 3mm from the right and 3mm from the bottom margin
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+I'll help you add the drawn_by.png image to the first page only. We'll modify the `_add_technical_drawing` method to include this:
+
+````diff:datasheet/datasheet_generator.py
+    def _add_technical_drawing(self):
++       # Add drawn_by.png to the first page
++       drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
++       try:
++           from PIL import Image as PILImage
++           img = PILImage.open(drawn_by_path)
++           img_width, img_height = img.size
++           # Scale image if needed
++           scale_factor = 0.5
++           drawn_by = Image(drawn_by_path, 
++                          width=img_width * scale_factor, 
++                          height=img_height * scale_factor)
++           # Position in bottom right corner, 3mm from margins
++           drawn_by.hAlign = 'RIGHT'
++           drawn_by.vAlign = 'BOTTOM'
++           drawn_by._offs_x = -3 * mm  # 3mm from right margin
++           drawn_by._offs_y = 3 * mm   # 3mm from bottom margin
++           self.story.append(drawn_by)
++       except Exception as e:
++           print(f"Error adding drawn_by image: {e}")
+
+        try:
+            if self.image_path.lower().endswith('.svg'):
+                from svglib.svglib import svg2rlg
+                drawing = svg2rlg(self.image_path)
+                if drawing:
+                    drawing.width *= 1.5  # Slightly smaller to fit better
+                    drawing.height *= 1.5
+                    self.story.append(drawing)
+                    self.story.append(Spacer(1, 5))  # Minimal space after image
+            else:
+                # Calculate new image size
+                img_width, img_height = resize_image(self.image_path, 10.5 * inch, 5.25 * inch)
+                tech_drawing = Image(self.image_path, width=img_width, height=img_height)
+                self.story.append(tech_drawing)
+                self.story.append(Spacer(1, 5))  # Minimal space after image
+        except Exception as e:
+            print(f"Error loading technical drawing: {e}")
+````
+
+
+
+
+This change will:
+1. Load the drawn_by.png image
+2. Scale it to 50% of its original size (adjust scale_factor if needed)
+3. Position it exactly 3mm from the right and bottom margins
+4. Add it to the first page only
+
+Let me know if you need any adjustments to the size or position!
+
+---
+
+_**User**_
+
+Somehow the image ended up in the top right corner and the distance between the top and the right are not the same, can you fix this? 
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+Let's modify the image positioning code to ensure it's in the bottom right corner with equal margins. Instead of using hAlign and vAlign, we'll create a Table to position the image precisely:
+
+````diff:datasheet/datasheet_generator.py
+    def _add_technical_drawing(self):
+        # Add drawn_by.png to the first page
+        drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
+        try:
+            from PIL import Image as PILImage
+            img = PILImage.open(drawn_by_path)
+            img_width, img_height = img.size
+            # Scale image if needed
+            scale_factor = 0.5
+            drawn_by = Image(drawn_by_path, 
+                           width=img_width * scale_factor, 
+                           height=img_height * scale_factor)
+-           # Position in bottom right corner, 3mm from margins
+-           drawn_by.hAlign = 'RIGHT'
+-           drawn_by.vAlign = 'BOTTOM'
+-           drawn_by._offs_x = -3 * mm  # 3mm from right margin
+-           drawn_by._offs_y = 3 * mm   # 3mm from bottom margin
+-           self.story.append(drawn_by)
++           # Create a table for positioning
++           drawn_by_table = Table(
++               [[drawn_by]],
++               colWidths=[self.doc.width],
++               rowHeights=[img_height * scale_factor]
++           )
++           # Style for right alignment and bottom positioning
++           drawn_by_table.setStyle([
++               ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
++               ('RIGHTPADDING', (0, 0), (-1, -1), 3*mm),
++               ('BOTTOMPADDING', (0, 0), (-1, -1), 3*mm),
++           ])
++           self.story.append(drawn_by_table)
+        except Exception as e:
+            print(f"Error adding drawn_by image: {e}")
+````
+
+
+
+
+This change will:
+1. Create a table to hold the image
+2. Set exact padding of 3mm from both right and bottom
+3. Ensure consistent positioning
+4. Keep the same scale factor for the image size
+
+Let me know if you need any adjustments to the position or size!
+
+---
+
+_**User**_
+
+Somehow it still is at the top right position
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+
+
+I see the issue. Let's modify the order of elements in the `_add_technical_drawing` method and add a Frame to position the drawn_by image at the bottom:
+
+````diff:datasheet/datasheet_generator.py
+    def _add_technical_drawing(self):
++       # First add the technical drawing
+        try:
+            if self.image_path.lower().endswith('.svg'):
+                from svglib.svglib import svg2rlg
+                drawing = svg2rlg(self.image_path)
+                if drawing:
+                    drawing.width *= 1.5  # Slightly smaller to fit better
+                    drawing.height *= 1.5
+                    self.story.append(drawing)
+                    self.story.append(Spacer(1, 5))  # Minimal space after image
+            else:
+                # Calculate new image size
+                img_width, img_height = resize_image(self.image_path, 10.5 * inch, 5.25 * inch)
+                tech_drawing = Image(self.image_path, width=img_width, height=img_height)
+                self.story.append(tech_drawing)
+                self.story.append(Spacer(1, 5))  # Minimal space after image
+        except Exception as e:
+            print(f"Error loading technical drawing: {e}")
+
++       # Add drawn_by.png at the end of the document
+        drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
+        try:
+            from PIL import Image as PILImage
+            img = PILImage.open(drawn_by_path)
+            img_width, img_height = img.size
+            # Scale image if needed
+            scale_factor = 0.5
+            drawn_by = Image(drawn_by_path, 
+                           width=img_width * scale_factor, 
+                           height=img_height * scale_factor)
+-           # Create a table for positioning
+-           drawn_by_table = Table(
+-               [[drawn_by]],
+-               colWidths=[self.doc.width],
+-               rowHeights=[img_height * scale_factor]
+-           )
+-           # Style for right alignment and bottom positioning
+-           drawn_by_table.setStyle([
+-               ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+-               ('RIGHTPADDING', (0, 0), (-1, -1), 3*mm),
+-               ('BOTTOMPADDING', (0, 0), (-1, -1), 3*mm),
+-           ])
+-           self.story.append(drawn_by_table)
++           # Position at bottom right
++           drawn_by.hAlign = 'RIGHT'
++           # Add spacer to push to bottom
++           self.story.append(PageBreak())
++           self.story.append(Spacer(1, self.doc.height - (img_height * scale_factor) - 3*mm))
++           # Add image with right margin
++           drawn_by._offs_x = -3 * mm  # 3mm from right margin
++           self.story.append(drawn_by)
+        except Exception as e:
+            print(f"Error adding drawn_by image: {e}")
+````
+
+
+
+
+
+This change:
+1. Moves the technical drawing code to the top
+2. Adds the drawn_by image at the end of the document
+3. Uses spacers and positioning to place it at the bottom right
+4. Sets exact 3mm margins
+
+Let me know if this positions the image correctly!
+
+---
+
+_**User**_
+
+this made it so that it is on the 2nd page, and the technical specifications that started on page 1 now are on page 3. It is somewhat on the bottom right corner but quite far from the edges
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+
+
+Let's try a different approach by creating a custom PageTemplate that includes the drawn_by image in its frame. We'll modify the `_init_doc` method:
+
+````diff:datasheet/datasheet_generator.py
+    def _init_doc(self):
+        file_path = os.path.join(self.output_dir, f"{self.product_id}_datasheet.pdf")
++       # Load drawn_by image for frame template
++       drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
++       from PIL import Image as PILImage
++       img = PILImage.open(drawn_by_path)
++       img_width, img_height = img.size
++       scale_factor = 0.5
++       drawn_by = Image(drawn_by_path,
++                       width=img_width * scale_factor,
++                       height=img_height * scale_factor)
++       drawn_by.hAlign = 'RIGHT'
++       drawn_by._offs_x = -3 * mm
++       drawn_by._offs_y = 3 * mm
+
+        doc = SimpleDocTemplate(
+            file_path,
+            pagesize=(A4[1], A4[0]),  # Landscape orientation
+            defaultStyle={'wordWrap': 'CJK'},
+        )
+
+        # First page template with no top margin
+        first_page_frame = Frame(
+            25 * mm,  # left margin
+            25 * mm,  # bottom margin
+            doc.width,  # width
+            doc.height,  # full height for first page
+            leftPadding=0,
+            topPadding=-15*mm,
+            rightPadding=0,
+            bottomPadding=0,
++           _afterFrameInit=lambda: drawn_by  # Add drawn_by to first page frame
+        )
+
+        # Other pages template with normal margins
+        other_pages_frame = Frame(
+            25 * mm,
+            25 * mm,
+            doc.width,
+            doc.height - 50 * mm,
+            leftPadding=0,
+            topPadding=0,
+            rightPadding=0,
+            bottomPadding=0
+        )
+
+        doc.addPageTemplates([
+            PageTemplate(id='FirstPage', frames=first_page_frame),
+            PageTemplate(id='OtherPages', frames=other_pages_frame)
+        ])
+
+        return doc
+
+    def _add_technical_drawing(self):
+-       # Add drawn_by.png at the end of the document
+-       drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
+-       try:
+-           from PIL import Image as PILImage
+-           img = PILImage.open(drawn_by_path)
+-           img_width, img_height = img.size
+-           # Scale image if needed
+-           scale_factor = 0.5
+-           drawn_by = Image(drawn_by_path, 
+-                          width=img_width * scale_factor, 
+-                          height=img_height * scale_factor)
+-           # Position at bottom right
+-           drawn_by.hAlign = 'RIGHT'
+-           # Add spacer to push to bottom
+-           self.story.append(PageBreak())
+-           self.story.append(Spacer(1, self.doc.height - (img_height * scale_factor) - 3*mm))
+-           # Add image with right margin
+-           drawn_by._offs_x = -3 * mm  # 3mm from right margin
+-           self.story.append(drawn_by)
+-       except Exception as e:
+-           print(f"Error adding drawn_by image: {e}")
+
+        # First add the technical drawing
+        try:
+            if self.image_path.lower().endswith('.svg'):
+                from svglib.svglib import svg2rlg
+````
+
+
+
+
+
+This change:
+1. Moves the drawn_by image handling to the page template
+2. Positions it in the bottom right corner with 3mm margins
+3. Only shows on the first page
+4. Keeps the rest of the content flowing normally
+
+Let me know if this positions the image correctly!
+
+---
+
+_**User**_
+
+Now I get the following error:
+> python main.py
+Traceback (most recent call last):
+  File "/home/michael/python/projects/datasheets/main.py", line 27, in <module>
+    main()
+  File "/home/michael/python/projects/datasheets/main.py", line 17, in main
+    generator = DatasheetGenerator(
+                ^^^^^^^^^^^^^^^^^^^
+  File "/home/michael/python/projects/datasheets/datasheet/datasheet_generator.py", line 26, in __init__
+    self.doc = self._init_doc()
+               ^^^^^^^^^^^^^^^^
+  File "/home/michael/python/projects/datasheets/datasheet/datasheet_generator.py", line 52, in _init_doc
+    first_page_frame = Frame(
+                       ^^^^^^
+TypeError: Frame.__init__() got an unexpected keyword argument '_afterFrameInit'
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+
+
+I apologize for the error. Let's try a different approach using a custom PageTemplate with an onPage method to add the drawn_by image:
+
+````diff:datasheet/datasheet_generator.py
+    def _init_doc(self):
+        file_path = os.path.join(self.output_dir, f"{self.product_id}_datasheet.pdf")
+-       # Load drawn_by image for frame template
+-       drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
+-       from PIL import Image as PILImage
+-       img = PILImage.open(drawn_by_path)
+-       img_width, img_height = img.size
+-       scale_factor = 0.5
+-       drawn_by = Image(drawn_by_path,
+-                       width=img_width * scale_factor,
+-                       height=img_height * scale_factor)
+-       drawn_by.hAlign = 'RIGHT'
+-       drawn_by._offs_x = -3 * mm
+-       drawn_by._offs_y = 3 * mm
+
+        doc = SimpleDocTemplate(
+            file_path,
+            pagesize=(A4[1], A4[0]),  # Landscape orientation
+            defaultStyle={'wordWrap': 'CJK'},
+        )
+
++       def first_page(canvas, doc):
++           canvas.saveState()
++           # Add drawn_by image to bottom right of first page
++           drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
++           img_width = 100  # Adjust these values as needed
++           img_height = 50
++           x = doc.pagesize[0] - img_width - 3*mm  # 3mm from right
++           y = 3*mm  # 3mm from bottom
++           canvas.drawImage(drawn_by_path, x, y, width=img_width, height=img_height)
++           canvas.restoreState()
+
+        # First page template with no top margin
+        first_page_frame = Frame(
+            25 * mm,  # left margin
+            25 * mm,  # bottom margin
+            doc.width,  # width
+            doc.height,  # full height for first page
+            leftPadding=0,
+            topPadding=-15*mm,
+            rightPadding=0,
+-           bottomPadding=0,
+-           _afterFrameInit=lambda: drawn_by  # Add drawn_by to first page frame
++           bottomPadding=0
+        )
+
+        # Other pages template with normal margins
+        other_pages_frame = Frame(
+            25 * mm,
+            25 * mm,
+            doc.width,
+            doc.height - 50 * mm,
+            leftPadding=0,
+            topPadding=0,
+            rightPadding=0,
+            bottomPadding=0
+        )
+
+        doc.addPageTemplates([
+-           PageTemplate(id='FirstPage', frames=first_page_frame),
++           PageTemplate(id='FirstPage', frames=first_page_frame, onPage=first_page),
+            PageTemplate(id='OtherPages', frames=other_pages_frame)
+        ])
+
+        return doc
+````
+
+
+
+
+
+This change:
+1. Removes the Frame-based approach
+2. Adds a custom onPage function for the first page
+3. Draws the image directly on the canvas
+4. Positions it exactly 3mm from bottom and right edges
+
+You might need to adjust the `img_width` and `img_height` values to match your image's proportions. Let me know if you need help with the sizing!
+
+---
+
+_**User**_
+
+Can you adjust 3 mm to 10mm? It is to far to the right and bottom
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+
+
+Yes, I'll adjust the margins from 3mm to 10mm in the `first_page` function:
+
+````diff:datasheet/datasheet_generator.py
+        def first_page(canvas, doc):
+            canvas.saveState()
+            # Add drawn_by image to bottom right of first page
+            drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
+            img_width = 100  # Adjust these values as needed
+            img_height = 50
+-           x = doc.pagesize[0] - img_width - 3*mm  # 3mm from right
+-           y = 3*mm  # 3mm from bottom
++           x = doc.pagesize[0] - img_width - 10*mm  # 10mm from right
++           y = 10*mm  # 10mm from bottom
+            canvas.drawImage(drawn_by_path, x, y, width=img_width, height=img_height)
+            canvas.restoreState()
+````
+
+
+
+
+
+This change will:
+1. Position the image 10mm from the right edge
+2. Position the image 10mm from the bottom edge
+
+Let me know if you'd like to adjust the position further!
+
+---
+
+_**User**_
+
+can you increas it with 12mm on both ends instead of 10?
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+
+
+
+
+Yes, I'll change the margins from 10mm to 12mm:
+
+````diff:datasheet/datasheet_generator.py
+            drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
+            img_width = 100  # Adjust these values as needed
+            img_height = 50
+-           x = doc.pagesize[0] - img_width - 10*mm  # 10mm from right
+-           y = 10*mm  # 10mm from bottom
++           x = doc.pagesize[0] - img_width - 12*mm  # 12mm from right
++           y = 12*mm  # 12mm from bottom
+            canvas.drawImage(drawn_by_path, x, y, width=img_width, height=img_height)
+            canvas.restoreState()
+````
+
+
+
+
+
+
+This change will:
+1. Position the image 12mm from the right edge
+2. Position the image 12mm from the bottom edge
+
+Let me know if you'd like to adjust the position further!
+
+---
+
+_**User**_
+
+and now 11 mm on both dimensions?
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+
+
+
+
+Yes, I'll change the margins from 12mm to 11mm:
+
+````diff:datasheet/datasheet_generator.py
+            drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
+            img_width = 100  # Adjust these values as needed
+            img_height = 50
+-           x = doc.pagesize[0] - img_width - 12*mm  # 12mm from right
+-           y = 12*mm  # 12mm from bottom
++           x = doc.pagesize[0] - img_width - 11*mm  # 11mm from right
++           y = 11*mm  # 11mm from bottom
+            canvas.drawImage(drawn_by_path, x, y, width=img_width, height=img_height)
+            canvas.restoreState()
+````
+
+
+
+
+
+
+
+This change will:
+1. Position the image 11mm from the right edge
+2. Position the image 11mm from the bottom edge
+
+Let me know if you'd like to adjust the position further!
+
+---
+
+_**User**_
+
+This is perfect, the image witdh and height are out of proportion, can you fix this? 
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+
+
+
+
+Yes, I'll adjust the image dimensions to maintain the correct proportions. Let's first get the actual dimensions from the image and then scale them proportionally:
+
+````diff:datasheet/datasheet_generator.py
+        def first_page(canvas, doc):
+            canvas.saveState()
+            # Add drawn_by image to bottom right of first page
+            drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
++           # Get original image dimensions
++           from PIL import Image
++           with Image.open(drawn_by_path) as img:
++               orig_width, orig_height = img.size
++           
++           # Scale factor to make the image an appropriate size
++           scale_factor = 0.5
++           img_width = orig_width * scale_factor
++           img_height = orig_height * scale_factor
+-           img_width = 100  # Adjust these values as needed
+-           img_height = 50
+            x = doc.pagesize[0] - img_width - 11*mm  # 11mm from right
+            y = 11*mm  # 11mm from bottom
+            canvas.drawImage(drawn_by_path, x, y, width=img_width, height=img_height)
+            canvas.restoreState()
+````
+
+
+
+
+
+
+This change will:
+1. Get the original image dimensions using PIL
+2. Apply a scale factor to make the image smaller while maintaining proportions
+3. Keep the same positioning at 11mm from right and bottom
+
+You can adjust the `scale_factor` if you want the image larger or smaller. Let me know if you'd like to adjust the size!
+
+---
+
+_**User**_
+
+Can you make the image 30% smaller? 
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Yes, I'll change the scale factor from 0.5 (50%) to 0.35 (35%) to make the image 30% smaller:
+
+````diff:datasheet/datasheet_generator.py
+            # Get original image dimensions
+            with Image.open(drawn_by_path) as img:
+                orig_width, orig_height = img.size
+            
+            # Scale factor to make the image an appropriate size
+-           scale_factor = 0.5
++           scale_factor = 0.35
+            img_width = orig_width * scale_factor
+            img_height = orig_height * scale_factor
+            x = doc.pagesize[0] - img_width - 11*mm  # 11mm from right
+            y = 11*mm  # 11mm from bottom
+````
+
+
+
+
+
+
+
+This change will:
+1. Reduce the image size to 35% of its original dimensions
+2. Maintain the aspect ratio
+3. Keep the same positioning at 11mm from right and bottom
+
+Let me know if you'd like to adjust the size further!
+
+---
+
+_**User**_
+
+that is to small, 15% larger? 
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Yes, I'll increase the scale factor by 15%, from 0.35 (35%) to 0.4 (40%):
+
+````diff:datasheet/datasheet_generator.py
+            # Scale factor to make the image an appropriate size
+-           scale_factor = 0.35
++           scale_factor = 0.4
+            img_width = orig_width * scale_factor
+            img_height = orig_height * scale_factor
+````
+
+
+
+
+
+
+
+
+This change will:
+1. Make the image 15% larger than before
+2. Keep the same proportions
+3. Maintain the 11mm positioning from right and bottom
+
+Let me know if you'd like to adjust the size further!
+
+---
+
+_**User**_
+
+The image is now only on the first 2 pages, can you show it on every page? 
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+
+
+
+
+Yes, I'll modify the code to show the drawn_by image on every page by creating a common page function for all templates:
+
+````diff:datasheet/datasheet_generator.py
+    def _init_doc(self):
+        file_path = os.path.join(self.output_dir, f"{self.product_id}_datasheet.pdf")
+
+        doc = SimpleDocTemplate(
+            file_path,
+            pagesize=(A4[1], A4[0]),  # Landscape orientation
+            defaultStyle={'wordWrap': 'CJK'},
+        )
+
+-       def first_page(canvas, doc):
++       def add_drawn_by(canvas, doc):
+            canvas.saveState()
+            # Add drawn_by image to bottom right of first page
+            drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
+            # Get original image dimensions
+            with Image.open(drawn_by_path) as img:
+                orig_width, orig_height = img.size
+            
+            # Scale factor to make the image an appropriate size
+            scale_factor = 0.4
+            img_width = orig_width * scale_factor
+            img_height = orig_height * scale_factor
+            x = doc.pagesize[0] - img_width - 11*mm  # 11mm from right
+            y = 11*mm  # 11mm from bottom
+            canvas.drawImage(drawn_by_path, x, y, width=img_width, height=img_height)
+            canvas.restoreState()
+
+        # First page template with no top margin
+        first_page_frame = Frame(
+            25 * mm,  # left margin
+            25 * mm,  # bottom margin
+            doc.width,  # width
+            doc.height,  # full height for first page
+            leftPadding=0,
+            topPadding=-15*mm,
+            rightPadding=0,
+            bottomPadding=0
+        )
+
+        # Other pages template with normal margins
+        other_pages_frame = Frame(
+            25 * mm,
+            25 * mm,
+            doc.width,
+            doc.height - 50 * mm,
+            leftPadding=0,
+            topPadding=0,
+            rightPadding=0,
+            bottomPadding=0
+        )
+
+        doc.addPageTemplates([
+-           PageTemplate(id='FirstPage', frames=first_page_frame, onPage=first_page),
+-           PageTemplate(id='OtherPages', frames=other_pages_frame)
++           PageTemplate(id='FirstPage', frames=first_page_frame, onPage=add_drawn_by),
++           PageTemplate(id='OtherPages', frames=other_pages_frame, onPage=add_drawn_by)
+        ])
+
+        return doc
+````
+
+
+
+
+
+
+This change will:
+1. Rename the page function to `add_drawn_by`
+2. Use the same function for both page templates
+3. Show the drawn_by image on every page in the same position
+
+Let me know if you'd like to make any adjustments!
+
+---
+
+_**User**_
+
+It still does not show up on the 3rd page
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Let's modify how we handle the page templates to ensure the drawn_by image appears on all pages. We'll create a single template with the drawn_by function:
+
+````diff:datasheet/datasheet_generator.py
+    def _init_doc(self):
+        file_path = os.path.join(self.output_dir, f"{self.product_id}_datasheet.pdf")
+
+        doc = SimpleDocTemplate(
+            file_path,
+            pagesize=(A4[1], A4[0]),  # Landscape orientation
+            defaultStyle={'wordWrap': 'CJK'},
+        )
+
+        def add_drawn_by(canvas, doc):
+            canvas.saveState()
+            # Add drawn_by image to bottom right of every page
+            drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
+            # Get original image dimensions
+            with Image.open(drawn_by_path) as img:
+                orig_width, orig_height = img.size
+            
+            # Scale factor to make the image an appropriate size
+            scale_factor = 0.4
+            img_width = orig_width * scale_factor
+            img_height = orig_height * scale_factor
+            x = doc.pagesize[0] - img_width - 11*mm  # 11mm from right
+            y = 11*mm  # 11mm from bottom
+            canvas.drawImage(drawn_by_path, x, y, width=img_width, height=img_height)
+            canvas.restoreState()
+
+        # First page template with no top margin
+        first_page_frame = Frame(
+            25 * mm,  # left margin
+            25 * mm,  # bottom margin
+            doc.width,  # width
+            doc.height,  # full height for first page
+            leftPadding=0,
+            topPadding=-15*mm,
+            rightPadding=0,
+            bottomPadding=0
+        )
+
+        # Other pages template with normal margins
+        other_pages_frame = Frame(
+            25 * mm,
+            25 * mm,
+            doc.width,
+            doc.height - 50 * mm,
+            leftPadding=0,
+            topPadding=0,
+            rightPadding=0,
+            bottomPadding=0
+        )
+
+-       doc.addPageTemplates([
+-           PageTemplate(id='FirstPage', frames=first_page_frame, onPage=add_drawn_by),
+-           PageTemplate(id='OtherPages', frames=other_pages_frame, onPage=add_drawn_by)
+-       ])
++       # Create templates with common onPage function
++       doc.addPageTemplates(PageTemplate(id='FirstPage', frames=first_page_frame, onPage=add_drawn_by))
++       doc.addPageTemplates(PageTemplate(id='OtherPages', frames=other_pages_frame, onPage=add_drawn_by))
+
+        return doc
+````
+
+
+
+
+
+
+
+This change will:
+1. Add templates individually instead of as a list
+2. Use the same `add_drawn_by` function for all pages
+3. Ensure the image appears on every page of the document
+
+Let me know if you still don't see the image on all pages!
+
+---
+
+_**User**_
+
+it is still not on the 3rd page...
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Let's try a different approach by modifying how we handle the page templates and story:
+
+````diff:datasheet/datasheet_generator.py
+    def generate(self):
+        self._build_story()
+-       # Set first page template and switch for subsequent pages
+-       self.story.insert(0, NextPageTemplate(['FirstPage', 'OtherPages']))
++       # Use the same template for all pages
++       self.story.insert(0, NextPageTemplate('FirstPage'))
+        # Generate temporary PDF without watermark
+        temp_pdf_path = os.path.join(self.output_dir, f"temp_{self.product_id}_datasheet.pdf")
+        final_pdf_path = os.path.join(self.output_dir, f"{self.product_id}_datasheet.pdf")
+        
+        # Build the initial PDF
+        self.doc.filename = temp_pdf_path
+-       self.doc.build(self.story)
++       self.doc.build(self.story, onFirstPage=add_drawn_by, onLaterPages=add_drawn_by)
+        
+        # Add watermark
+        watermark_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'Watermerk.pdf')
+        add_watermark_to_pdf(temp_pdf_path, watermark_path, final_pdf_path)
+        
+        # Clean up temporary file
+        os.remove(temp_pdf_path)
+````
+
+
+
+
+
+
+
+This change will:
+1. Use the same template for all pages
+2. Add the drawn_by image using the build method's onFirstPage and onLaterPages parameters
+3. Ensure the image appears on every page consistently
+
+Let me know if you still don't see the image on all pages!
+
+---
+
+_**User**_
+
+Now I get the following error:
+> python main.py
+Traceback (most recent call last):
+  File "/home/michael/python/projects/datasheets/main.py", line 27, in <module>
+    main()
+  File "/home/michael/python/projects/datasheets/main.py", line 24, in main
+    generator.generate()
+  File "/home/michael/python/projects/datasheets/datasheet/datasheet_generator.py", line 107, in generate
+    self.doc.build(self.story, onFirstPage=add_drawn_by, onLaterPages=add_drawn_by)
+                                           ^^^^^^^^^^^^
+NameError: name 'add_drawn_by' is not defined
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ah, I see the issue. The `add_drawn_by` function is defined inside `_init_doc` an
+
+---
+
 
 
 ---
