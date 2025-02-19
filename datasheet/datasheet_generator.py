@@ -9,6 +9,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm, inch
 from reportlab.lib import colors
 from utils.image_utils import resize_image
+from utils.pdf_utils import add_watermark_to_pdf
 
 class DatasheetGenerator:
     DEFAULT_IMAGE_SIZE = (10.5 * inch, 5.25 * inch)
@@ -80,7 +81,20 @@ class DatasheetGenerator:
         self._build_story()
         # Set first page template and switch for subsequent pages
         self.story.insert(0, NextPageTemplate(['FirstPage', 'OtherPages']))
+        # Generate temporary PDF without watermark
+        temp_pdf_path = os.path.join(self.output_dir, f"temp_{self.product_id}_datasheet.pdf")
+        final_pdf_path = os.path.join(self.output_dir, f"{self.product_id}_datasheet.pdf")
+        
+        # Build the initial PDF
+        self.doc.filename = temp_pdf_path
         self.doc.build(self.story)
+        
+        # Add watermark
+        watermark_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'Watermerk.pdf')
+        add_watermark_to_pdf(temp_pdf_path, watermark_path, final_pdf_path)
+        
+        # Clean up temporary file
+        os.remove(temp_pdf_path)
 
     def _build_story(self):
         self._add_technical_drawing()
