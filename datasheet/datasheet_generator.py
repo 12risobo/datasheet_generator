@@ -69,19 +69,33 @@ class DatasheetGenerator:
 
     def add_drawn_by(self, canvas, doc):
         canvas.saveState()
-        # Add drawn_by image to bottom right of every page
-        drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.png')
-        # Get original image dimensions
-        with Image.open(drawn_by_path) as img:
-            orig_width, orig_height = img.size
+        # Add drawn_by SVG to bottom right of every page
+        drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.svg')
+        # Convert SVG to ReportLab drawing
+        from svglib.svglib import svg2rlg
+        drawing = svg2rlg(drawn_by_path)
         
-        # Scale factor to make the image an appropriate size
-        scale_factor = 0.4
-        img_width = orig_width * scale_factor
-        img_height = orig_height * scale_factor
-        x = doc.pagesize[0] - img_width - 11*mm  # 11mm from right
-        y = 11*mm  # 11mm from bottom
-        canvas.drawImage(drawn_by_path, x, y, width=img_width, height=img_height)
+        # Desired final dimensions
+        target_width = 120*mm  # Increased by 300% (40mm → 120mm)
+        target_height = 45*mm  # Increased by 300% (15mm → 45mm)
+        
+        # Calculate scale factors
+        width_scale = target_width / drawing.width
+        height_scale = target_height / drawing.height
+        scale = min(width_scale, height_scale)
+        
+        # Calculate position
+        page_width, page_height = doc.pagesize
+        x = page_width - (drawing.width * scale) - 11*mm  # Keep 11mm right margin
+        y = 11*mm  # Keep 11mm bottom margin
+        
+        # Apply transformations
+        canvas.translate(x, y)
+        canvas.scale(scale, scale)
+        
+        # Draw the SVG
+        from reportlab.graphics import renderPDF
+        renderPDF.draw(drawing, canvas, 0, 0)
         canvas.restoreState()
 
     def register_fonts(self):
