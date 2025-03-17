@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import (SimpleDocTemplate, Image, Table, Paragraph,
                                PageBreak, Spacer, KeepTogether, NextPageTemplate)
@@ -20,8 +21,8 @@ class DatasheetGenerator:
         self.product_id = product_id
         self.specs_data = specs_data
         self.items_data = items_data
-        self.image_path = image_path
-        self.output_dir = output_dir
+        self.image_path = Path(image_path)
+        self.output_dir = Path(output_dir)
         self.styles = getSampleStyleSheet()
         self.story = []
         self.doc = self._init_doc()
@@ -29,10 +30,10 @@ class DatasheetGenerator:
         self.register_fonts()
 
     def _init_doc(self):
-        file_path = os.path.join(self.output_dir, f"{self.product_id}_datasheet.pdf")
+        file_path = self.output_dir / f"{self.product_id}_datasheet.pdf"
 
         doc = SimpleDocTemplate(
-            file_path,
+            str(file_path),  # Convert Path to string for ReportLab
             pagesize=(A4[1], A4[0]),  # Landscape orientation
             defaultStyle={'wordWrap': 'CJK'},
         )
@@ -70,10 +71,10 @@ class DatasheetGenerator:
     def add_drawn_by(self, canvas, doc):
         canvas.saveState()
         # Add drawn_by SVG to bottom right of every page
-        drawn_by_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'drawn_by.svg')
+        drawn_by_path = Path(__file__).parent.parent / 'assets' / 'drawn_by.svg'
         # Convert SVG to ReportLab drawing
         from svglib.svglib import svg2rlg
-        drawing = svg2rlg(drawn_by_path)
+        drawing = svg2rlg(str(drawn_by_path))  # Convert Path to string
         
         # Desired final dimensions
         target_width = 120*mm  # Increased by 300% (40mm → 120mm)
@@ -102,30 +103,30 @@ class DatasheetGenerator:
         from reportlab.pdfbase import pdfmetrics
         from reportlab.pdfbase.ttfonts import TTFont
         # Use font files from the fonts directory (relative to project root)
-        font_dir = os.path.join(os.path.dirname(__file__), '..', 'fonts')
-        calibri_regular = os.path.join(font_dir, 'calibri.ttf')
-        calibri_bold = os.path.join(font_dir, 'calibrib.ttf')
-        pdfmetrics.registerFont(TTFont('Calibri', calibri_regular))
-        pdfmetrics.registerFont(TTFont('Calibri-Bold', calibri_bold))
+        font_dir = Path(__file__).parent.parent / 'fonts'
+        calibri_regular = font_dir / 'calibri.ttf'
+        calibri_bold = font_dir / 'calibrib.ttf'
+        pdfmetrics.registerFont(TTFont('Calibri', str(calibri_regular)))
+        pdfmetrics.registerFont(TTFont('Calibri-Bold', str(calibri_bold)))
 
     def generate(self):
         self._build_story()
         # Use the same template for all pages
         self.story.insert(0, NextPageTemplate('FirstPage'))
         # Generate temporary PDF without watermark
-        temp_pdf_path = os.path.join(self.output_dir, f"temp_{self.product_id}_datasheet.pdf")
-        final_pdf_path = os.path.join(self.output_dir, f"{self.product_id}_datasheet.pdf")
+        temp_pdf_path = self.output_dir / f"temp_{self.product_id}_datasheet.pdf"
+        final_pdf_path = self.output_dir / f"{self.product_id}_datasheet.pdf"
         
         # Build the initial PDF
-        self.doc.filename = temp_pdf_path
+        self.doc.filename = str(temp_pdf_path)  # Convert Path to string
         self.doc.build(self.story, onFirstPage=self.add_drawn_by, onLaterPages=self.add_drawn_by)
         
         # Add watermark
-        watermark_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'Watermerk.pdf')
-        add_watermark_to_pdf(temp_pdf_path, watermark_path, final_pdf_path)
+        watermark_path = Path(__file__).parent.parent / 'assets' / 'Watermerk.pdf'
+        add_watermark_to_pdf(str(temp_pdf_path), str(watermark_path), str(final_pdf_path))
         
         # Clean up temporary file
-        os.remove(temp_pdf_path)
+        temp_pdf_path.unlink()
 
     def _build_story(self):
         self._add_technical_drawing()
@@ -135,9 +136,9 @@ class DatasheetGenerator:
     def _add_technical_drawing(self):
         # First add the technical drawing
         try:
-            if self.image_path.lower().endswith('.svg'):
+            if self.image_path.suffix.lower() == '.svg':
                 from svglib.svglib import svg2rlg
-                drawing = svg2rlg(self.image_path)
+                drawing = svg2rlg(str(self.image_path))  # Convert Path to string
                 if drawing:
                     drawing.width *= 1.5  # Slightly smaller to fit better
                     drawing.height *= 1.5
@@ -145,8 +146,8 @@ class DatasheetGenerator:
                     self.story.append(Spacer(1, 5))  # Minimal space after image
             else:
                 # Calculate new image size
-                img_width, img_height = resize_image(self.image_path, 10.5 * inch, 5.25 * inch)
-                tech_drawing = Image(self.image_path, width=img_width, height=img_height)
+                img_width, img_height = resize_image(str(self.image_path), 10.5 * inch, 5.25 * inch)
+                tech_drawing = Image(str(self.image_path), width=img_width, height=img_height)
                 self.story.append(tech_drawing)
                 self.story.append(Spacer(1, 5))  # Minimal space after image
         except Exception as e:
