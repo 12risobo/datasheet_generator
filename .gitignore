@@ -16,6 +16,9 @@ ENV/
 .env
 .venv
 pythonenv*
+# Add specific virtual environments
+datasheet_env/
+new_env/
 
 # IDE specific files
 .idea/           # PyCharm
@@ -60,3 +63,23 @@ local_settings.py
 .DS_Store       # macOS
 Thumbs.db       # Windows
 desktop.ini     # Windows
+
+# Generated output files
+generated_datasheets/
+
+# Potentially sensitive data
+.specstory/
+
+# Backup and temp files
+*.bak
+*.tmp
+*.temp
+.~lock.*
+
+# Personal or project specific files that might contain sensitive info
+composer-*.md
+
+# History and cache files
+.bash_history
+.python_history
+.cache/
