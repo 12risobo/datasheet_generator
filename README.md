@@ -167,7 +167,13 @@ The datasheet generator uses a modular architecture:
 
 ## License
 
-[Add your chosen license here]
+This project is licensed under the MIT License
+
+## Third-Party Licenses  
+This software uses components governed by the following licenses:  
+- [LGPL-3.0](LICENSES/LGPL-3.0.txt) (svglib)  
+- [BSD-3-Clause](LICENSES/BSD-3-Clause-reportlab.txt) (reportlab)  
+- [BSD-3-Clause](LICENSES/BSD-3-Clause-PyPDF2.txt) (PyPDF2)
 
 ## Contributing
 
