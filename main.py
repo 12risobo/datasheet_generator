@@ -1,3 +1,13 @@
+#!/usr/bin/env python3
+# /// script
+# dependencies = [
+#     "reportlab==4.0.4",
+#     "svglib==1.5.1",
+#     "Pillow==10.0.0",
+#     "PyPDF2==3.0.1"
+# ]
+# ///
+
 from pathlib import Path
 import os
 import logging

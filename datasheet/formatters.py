@@ -2,18 +2,38 @@ from reportlab.lib import colors
 from reportlab.platypus import Table
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import mm
+import logging
+from pathlib import Path
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 class TableFormatter:
     """Handles table formatting and styling for the datasheet."""
     
     def __init__(self):
         """Initialize the table formatter with default styles."""
-        self.header_color = colors.HexColor('#305496')
-        self.header_text_color = colors.white
-        self.font_name = 'Calibri'
-        self.header_font_size = 10
-        self.body_font_size = 8
+        self.header_color = '#305496'  # Dark blue
+        self.header_text_color = '#FFFFFF'  # White
+        self.font_name = 'Helvetica'  # Default font
+        self.font_size = 8
+        self.header_font_size = 9
         self.styles = getSampleStyleSheet()
+        
+        # Try to register Calibri fonts
+        try:
+            fonts_dir = Path(__file__).parent / 'fonts'
+            if (fonts_dir / 'calibri.ttf').exists() and (fonts_dir / 'calibrib.ttf').exists():
+                pdfmetrics.registerFont(TTFont('Calibri', str(fonts_dir / 'calibri.ttf')))
+                pdfmetrics.registerFont(TTFont('Calibri-Bold', str(fonts_dir / 'calibrib.ttf')))
+                self.font_name = 'Calibri'
+            else:
+                logging.getLogger(__name__).warning(
+                    "Calibri fonts not found in fonts directory. Using Helvetica as fallback."
+                )
+        except Exception as e:
+            logging.getLogger(__name__).warning(
+                f"Failed to load Calibri fonts: {e}. Using Helvetica as fallback."
+            )
     
     def create_specification_table_style(self):
         """Create a style for specification tables.
@@ -25,7 +45,7 @@ class TableFormatter:
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 1), (-1, -1), self.font_name),
-            ('FONTSIZE', (0, 1), (-1, -1), self.body_font_size),
+            ('FONTSIZE', (0, 1), (-1, -1), self.font_size),
             ('TOPPADDING', (0, 0), (-1, -1), 1.7),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 1.7),
             ('SPAN', (0, 0), (1, 0)),
@@ -48,7 +68,7 @@ class TableFormatter:
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 1), (-1, -1), self.font_name),
-            ('FONTSIZE', (0, 1), (-1, -1), self.body_font_size),
+            ('FONTSIZE', (0, 1), (-1, -1), self.font_size),
             ('TOPPADDING', (0, 0), (-1, -1), 1.7),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 1.7),
             ('BACKGROUND', (0, 0), (-1, 0), self.header_color),
@@ -83,6 +103,7 @@ class TableFormatter:
             spaceAfter=5
         )
         table.setStyle(style)
+        table._style = style  # Store the style as an attribute
         
         return table
     
@@ -106,6 +127,7 @@ class TableFormatter:
             spaceAfter=5
         )
         table.setStyle(style)
+        table._style = style  # Store the style as an attribute
         
         return table
     

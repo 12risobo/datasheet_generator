@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="45" viewBox="0 0 120 45">
+  <rect width="120" height="45" fill="#305496"/>
+  <rect x="5" y="5" width="110" height="35" fill="#ffffff" fill-opacity="0.9"/>
+  <text x="10" y="25" font-family="Helvetica" font-size="12" fill="#305496">Drawn By</text>
+</svg> 

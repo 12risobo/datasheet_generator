@@ -1,9 +1,18 @@
+#!/usr/bin/env python3
+# /// script
+# dependencies = [
+#     "pytest==7.4.0",
+#     "pytest-cov==4.1.0"
+# ]
+# ///
+
 import pytest
 from pathlib import Path
 import tempfile
 import shutil
 import csv
 import os
+from reportlab.graphics.shapes import Drawing, Rect
 
 @pytest.fixture
 def temp_dir():
@@ -21,9 +30,9 @@ def sample_specs_data():
         ["Tensile strength", "90N (short time 150N)"],
         ["", ""],
         ["Specifications fiber [H1]", ""],
-        ["Fiber type", "Multimode"],
-        ["Fiber class", "OM4"],
-        ["Diameter core / cladding", "50/125"],
+        ["Type", "OM4"],
+        ["Core diameter", "50µm"],
+        ["Cladding diameter", "125µm"],
     ]
 
 @pytest.fixture
@@ -56,51 +65,40 @@ def sample_csv_files(temp_dir, sample_specs_data, sample_product_data):
     return {"specs": specs_path, "products": products_path}
 
 @pytest.fixture
-def sample_svg_file(temp_dir):
-    """Create a sample SVG file for testing."""
-    svg_content = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-    <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100" height="100" fill="blue" />
-        <text x="10" y="50" font-family="Arial" font-size="20" fill="white">Test</text>
-    </svg>"""
-    
-    svg_path = temp_dir / "test_drawing.svg"
-    with open(svg_path, 'w') as f:
-        f.write(svg_content)
-    
-    return svg_path
+def sample_svg_file(tmp_path):
+    svg_file = tmp_path / "test_drawing.svg"
+    svg_file.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+    <rect width="100" height="100" fill="blue"/>
+</svg>""")
+    return svg_file
 
 @pytest.fixture
-def mock_assets_dir(temp_dir):
+def mock_svg_drawing():
+    """Create a mock SVG drawing for testing."""
+    drawing = Drawing(100, 100)
+    drawing.add(Rect(0, 0, 100, 100, fillColor='blue'))
+    return drawing
+
+@pytest.fixture
+def mock_assets_dir(tmp_path):
     """Create a mock assets directory with necessary files."""
-    assets_dir = temp_dir / "assets"
-    assets_dir.mkdir(exist_ok=True)
+    assets_dir = tmp_path / "assets"
+    assets_dir.mkdir()
     
-    # Create a simple watermark PDF
-    watermark_path = assets_dir / "Watermerk.pdf"
-    # This is just a placeholder - in a real test we'd create a valid PDF
-    with open(watermark_path, 'w') as f:
-        f.write("Mock PDF content")
-    
-    # Create a drawn_by SVG
-    drawn_by_path = assets_dir / "drawn_by.svg"
-    svg_content = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-    <svg width="100" height="50" xmlns="http://www.w3.org/2000/svg">
-        <text x="10" y="30" font-family="Arial" font-size="12" fill="black">Drawn By Test</text>
-    </svg>"""
-    with open(drawn_by_path, 'w') as f:
-        f.write(svg_content)
+    # Create a simple drawn_by.svg file without text to avoid font issues
+    drawn_by_svg = assets_dir / "drawn_by.svg"
+    drawn_by_svg.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="45">
+    <rect width="120" height="45" fill="#305496"/>
+    <rect x="5" y="5" width="110" height="35" fill="#ffffff" fill-opacity="0.9"/>
+</svg>""")
     
     return assets_dir
 
 @pytest.fixture
-def mock_fonts_dir(temp_dir):
-    """Create a mock fonts directory with placeholder font files."""
-    fonts_dir = temp_dir / "fonts"
-    fonts_dir.mkdir(exist_ok=True)
-    
-    # Create placeholder font files
-    (fonts_dir / "calibri.ttf").touch()
-    (fonts_dir / "calibrib.ttf").touch()
-    
+def mock_fonts_dir(tmp_path):
+    """Create a mock fonts directory."""
+    fonts_dir = tmp_path / "fonts"
+    fonts_dir.mkdir()
     return fonts_dir 

@@ -13,8 +13,18 @@ class TemplateManager:
     
     def __init__(self):
         """Initialize the template manager."""
-        self.assets_dir = Path(__file__).parent.parent / 'assets'
-        self.fonts_dir = Path(__file__).parent.parent / 'fonts'
+        # Get the directory containing this file
+        current_dir = Path(__file__).parent
+        
+        # Set up assets and fonts directories
+        self.assets_dir = current_dir / 'assets'
+        self.fonts_dir = current_dir / 'fonts'
+        
+        # Ensure directories exist
+        self.assets_dir.mkdir(exist_ok=True)
+        self.fonts_dir.mkdir(exist_ok=True)
+        
+        # Register fonts
         self.register_fonts()
     
     def init_doc(self, product_id, output_dir):
@@ -98,35 +108,86 @@ class TemplateManager:
         # Add drawn_by SVG to bottom right of every page
         drawn_by_path = self.assets_dir / 'drawn_by.svg'
         
-        # Convert SVG to ReportLab drawing
-        drawing = svg2rlg(str(drawn_by_path))
-        
-        # Desired final dimensions
-        target_width = 120*mm  # Width in mm
-        target_height = 45*mm  # Height in mm
-        
-        # Calculate scale factors
-        width_scale = target_width / drawing.width
-        height_scale = target_height / drawing.height
-        scale = min(width_scale, height_scale)
-        
-        # Calculate position
-        page_width, page_height = doc.pagesize
-        x = page_width - (drawing.width * scale) - 11*mm  # 11mm from right edge
-        y = 11*mm  # 11mm from bottom
-        
-        # Apply transformations
-        canvas.translate(x, y)
-        canvas.scale(scale, scale)
-        
-        # Draw the SVG
-        renderPDF.draw(drawing, canvas, 0, 0)
-        canvas.restoreState()
+        try:
+            if not drawn_by_path.exists():
+                raise FileNotFoundError(f"SVG file not found at {drawn_by_path}")
+                
+            # Convert SVG to ReportLab drawing
+            drawing = svg2rlg(str(drawn_by_path))
+            if drawing is None:
+                # Create a simple drawing if SVG cannot be loaded
+                from reportlab.graphics.shapes import Drawing, Rect, String
+                drawing = Drawing(120, 45)
+                drawing.add(Rect(0, 0, 120, 45, fillColor='#305496'))
+                drawing.add(Rect(5, 5, 110, 35, fillColor='white', fillOpacity=0.9))
+                # Add text with fallback font
+                drawing.add(String(10, 25, "Drawn By", fontName='Helvetica', fontSize=12, fillColor='#305496'))
+            
+            # Desired final dimensions
+            target_width = 120*mm  # Width in mm
+            target_height = 45*mm  # Height in mm
+            
+            # Calculate scale factors
+            width_scale = target_width / drawing.width
+            height_scale = target_height / drawing.height
+            scale = min(width_scale, height_scale)
+            
+            # Calculate position
+            page_width, page_height = doc.pagesize
+            x = page_width - (drawing.width * scale) - 11*mm  # 11mm from right edge
+            y = 11*mm  # 11mm from bottom
+            
+            # Apply transformations
+            canvas.translate(x, y)
+            canvas.scale(scale, scale)
+            
+            # Draw the SVG
+            renderPDF.draw(drawing, canvas, 0, 0)
+        except Exception as e:
+            # Log error but continue without the drawing
+            import logging
+            logging.getLogger(__name__).error(f"Error adding drawn_by SVG: {e}")
+            # Create a simple drawing as fallback
+            from reportlab.graphics.shapes import Drawing, Rect, String
+            drawing = Drawing(120, 45)
+            drawing.add(Rect(0, 0, 120, 45, fillColor='#305496'))
+            drawing.add(Rect(5, 5, 110, 35, fillColor='white', fillOpacity=0.9))
+            drawing.add(String(10, 25, "Drawn By", fontName='Helvetica', fontSize=12, fillColor='#305496'))
+            # Draw the fallback
+            renderPDF.draw(drawing, canvas, 0, 0)
+        finally:
+            canvas.restoreState()
     
     def register_fonts(self):
         """Register custom fonts for use in the document."""
+        # Get the absolute paths to the font files
         calibri_regular = self.fonts_dir / 'calibri.ttf'
         calibri_bold = self.fonts_dir / 'calibrib.ttf'
         
-        pdfmetrics.registerFont(TTFont('Calibri', str(calibri_regular)))
-        pdfmetrics.registerFont(TTFont('Calibri-Bold', str(calibri_bold))) 
+        try:
+            # Check if font files exist
+            if not calibri_regular.exists() or not calibri_bold.exists():
+                raise FileNotFoundError("Calibri font files not found")
+            
+            # Register the fonts
+            pdfmetrics.registerFont(TTFont('Calibri', str(calibri_regular)))
+            pdfmetrics.registerFont(TTFont('Calibri-Bold', str(calibri_bold)))
+            
+            # Register the font family
+            pdfmetrics.registerFontFamily(
+                'Calibri',
+                normal='Calibri',
+                bold='Calibri-Bold',
+            )
+        except Exception as e:
+            # Log warning and use Helvetica as fallback
+            import logging
+            logging.getLogger(__name__).warning(
+                f"Could not load Calibri fonts: {e}. Using Helvetica as fallback."
+            )
+            # Register Helvetica as fallback
+            pdfmetrics.registerFontFamily(
+                'Calibri',
+                normal='Helvetica',
+                bold='Helvetica-Bold',
+            ) 

@@ -125,22 +125,39 @@ class TestDatasheetGenerator:
             mock_add_watermark.assert_called_once()
     
     def test_integration(self, sample_specs_data, sample_product_data, sample_svg_file, 
-                         temp_dir, mock_assets_dir, mock_fonts_dir):
+                         temp_dir, mock_assets_dir, mock_fonts_dir, mock_svg_drawing):
         """Integration test for the entire generation process."""
         # This test would be more complex in a real environment
         # For now, we'll just check that it runs without errors
         
         # Arrange
         # We need to patch the paths to assets and fonts
-        with patch('datasheet.template_manager.Path.parent.parent', 
-                  new_callable=MagicMock) as mock_parent:
-            
-            # Configure the mock to return our test directories
-            mock_parent.__truediv__.side_effect = lambda x: {
-                'assets': mock_assets_dir,
-                'fonts': mock_fonts_dir
-            }.get(x, Path(f"/mock/{x}"))
-            
+        with patch('datasheet.template_manager.Path') as mock_path_class, \
+             patch('reportlab.pdfbase.ttfonts.TTFont') as mock_ttfont, \
+             patch('svglib.svglib.svg2rlg') as mock_svg2rlg:
+            # Create mock instances
+            mock_path = MagicMock()
+            mock_path.parent = MagicMock()
+            mock_path.parent.parent = MagicMock()
+            mock_path_class.return_value = mock_path
+
+            # Set up path resolution
+            def mock_truediv(self, other):
+                if other == "assets":
+                    return mock_assets_dir
+                elif other == "fonts":
+                    return mock_fonts_dir
+                return mock_path
+
+            mock_path.parent.parent.__truediv__ = mock_truediv
+
+            # Mock font loading
+            mock_ttfont_instance = MagicMock()
+            mock_ttfont.return_value = mock_ttfont_instance
+
+            # Mock SVG loading
+            mock_svg2rlg.return_value = mock_svg_drawing
+
             # Create generator
             generator = DatasheetGenerator(
                 product_id="TEST123",
@@ -159,4 +176,4 @@ class TestDatasheetGenerator:
                     assert True  # If we get here, no exceptions were raised
             except Exception as e:
                 # In a real test, we'd want to be more specific about which exceptions are acceptable
-                pytest.skip(f"Integration test failed with: {e}") 
+                pytest.skip(f"Integration test failed with: {e}")

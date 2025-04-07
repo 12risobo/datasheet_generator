@@ -28,8 +28,7 @@ Key features:
 ├── fonts/                # Font files
 ├── tests/                # Test suite
 ├── utils/                # Utility functions
-├── main.py               # Entry point script
-└── requirements.txt      # Project dependencies
+└── main.py               # Entry point script
 ```
 
 ## Installation
@@ -40,25 +39,18 @@ Key features:
    cd datasheets
    ```
 
-2. Create and activate a virtual environment:
+2. Install UV (if not already installed):
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
+   pip install uv
    ```
 
 ## Usage
 
 ### Basic Usage
 
-Run the main script to generate a datasheet:
-
+Run the main script using UV:
 ```bash
-python main.py
+uv run main.py
 ```
 
 This will:
@@ -132,19 +124,19 @@ RL9701,1.00M
 The project includes a comprehensive test suite using pytest. To run the tests:
 
 ```bash
-pytest
+uv run pytest
 ```
 
 To run only unit tests (skip integration tests):
 
 ```bash
-pytest -m "not integration"
+uv run pytest -m "not integration"
 ```
 
 To run with coverage report:
 
 ```bash
-pytest --cov=datasheet tests/
+uv run pytest --cov=datasheet tests/
 ```
 
 ## Architecture
